@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package employee;
+
+option go_package = "grpc-employee-book/proto;employee";
+
+message Employee {
+    int32 id = 1;
+    string name = 2;
+    string city = 3;
+    int32 salary = 4;
+}
+
+message ID {
+    int32 id = 1;
+}
+
+service EmployeeService {
+    rpc CreateEmployee(Employee) returns (ID);
+    rpc ReadEmployee(ID) returns (Employee);
+    rpc UpdateEmployee(Employee) returns (ID);
+    rpc DeleteEmployee(ID) returns (ID);
+}
