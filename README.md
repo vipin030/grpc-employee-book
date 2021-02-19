@@ -10,7 +10,7 @@ Technologies used :point_down:
 
 ```
 git clone https://github.com/vipin030/grpc-employee-book.git
-cd grpc-employe-book
+cd grpc-employee-book
 go mod download
 ```
 
