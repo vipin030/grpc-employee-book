@@ -18,6 +18,10 @@ import (
 
 type server struct{}
 
+const (
+	table = "employees"
+)
+
 // Conn object
 var Conn *pgx.Conn
 
@@ -29,7 +33,6 @@ func main() {
 		schema   = "employee"
 	)
 	dsn := fmt.Sprintf("user=%s password=%s host=%s dbname=%s sslmode=disable", username, password, host, schema)
-	fmt.Printf("Server gonna start ")
 	lis, err := net.Listen("tcp", "127.0.0.1:50051")
 
 	if err != nil {
@@ -52,7 +55,7 @@ func main() {
 		}
 	}()
 
-	fmt.Println("Server has been started.. on ", lis.Addr().String())
+	fmt.Println("Server has been started on ", lis.Addr().String())
 	c := make(chan os.Signal)
 
 	// os.Interrupt = CTRL+C
@@ -71,7 +74,7 @@ func (s *server) CreateEmployee(ctx context.Context, em *pb.Employee) (*pb.ID, e
 	if em.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "Name is empty, please try again")
 	}
-	insertQueryMeta := `insert into employees (name, city, salary) values ($1, $2, $3)`
+	insertQueryMeta := fmt.Sprintf(`insert into %v (name, city, salary) values ($1, $2, $3)`, table)
 	_, err := Conn.Exec(context.Background(), insertQueryMeta, em.Name, em.City, em.Salary)
 
 	return &pb.ID{Id: em.Id}, err
@@ -91,7 +94,7 @@ func (s *server) ReadEmployee(ctx context.Context, em *pb.ID) (*pb.Employee, err
 	if em.Id < 1 {
 		return nil, status.Error(codes.InvalidArgument, "ID is empty, please try again")
 	}
-	readQueryMeta := `select id,name,city,salary from employees where id = $1`
+	readQueryMeta := fmt.Sprintf(`select id,name,city,salary from %v where id = $1`, table)
 	var a = &pb.Employee{}
 	err := Conn.QueryRow(context.Background(), readQueryMeta, em.Id).Scan(&a.Id, &a.Name, &a.City, &a.Salary)
 	return a, err
@@ -101,8 +104,8 @@ func (s *server) UpdateEmployee(ctx context.Context, em *pb.Employee) (*pb.ID, e
 	if em.Id < 1 {
 		return nil, status.Error(codes.InvalidArgument, "ID is empty, please try again")
 	}
-	readQueryMeta := `select id from employees where id = $1`
-	updateQueryMeta := `update employees set name = $1, city = $2 where id = $3`
+	readQueryMeta := fmt.Sprintf(`select id from %v where id = $1`, table)
+	updateQueryMeta := fmt.Sprintf(`update %v set name = $1, city = $2 where id = $3`, table)
 	var id int32
 	err := Conn.QueryRow(context.Background(), readQueryMeta, em.Id).Scan(&id)
 	if err != nil {
@@ -110,9 +113,5 @@ func (s *server) UpdateEmployee(ctx context.Context, em *pb.Employee) (*pb.ID, e
 		return nil, status.Error(codes.InvalidArgument, "Employee does not found")
 	}
 	_, err = Conn.Exec(context.Background(), updateQueryMeta, em.Name, em.City, em.Id)
-	if err != nil {
-		log.Fatalf("updation failed due to %v", err)
-		return nil, status.Error(codes.InvalidArgument, "Updation failed")
-	}
-	return &pb.ID{Id: em.Id}, nil
+	return &pb.ID{Id: em.Id}, err
 }

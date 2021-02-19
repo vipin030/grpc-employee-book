@@ -62,7 +62,7 @@ func main() {
 		_, err := c.CreateEmployee(ctx, &pb.Employee{Name: name, City: city,
 			Salary: int32(salInt)})
 		if err != nil {
-			log.Fatalf("Could not create a new employee: %v", err)
+			log.Fatalf("Failed to create new employee: %v", err)
 		}
 		fmt.Println("Saved Employee", "with the Name", name, "and salary", salInt)
 	case "2":
@@ -73,7 +73,10 @@ func main() {
 		id = strings.Trim(id, "\n")
 		idInt, _ := strconv.Atoi(id)
 		employees, err := c.ReadEmployee(ctx, &pb.ID{Id: int32(idInt)})
-		fmt.Println("Employee", employees, err)
+		if err != nil {
+			log.Fatalf("Failed to read employee details due to %v", err)
+		}
+		fmt.Println("Employee details are below:\n", employees)
 	case "3":
 		// Update Employee
 		fmt.Println("Enter the Employee ID")
@@ -89,8 +92,11 @@ func main() {
 		cityBuf := bufio.NewReader(os.Stdin)
 		city, _ := cityBuf.ReadString('\n')
 		city = strings.Trim(city, "\n")
-		employees, err := c.UpdateEmployee(ctx, &pb.Employee{Id: int32(idInt), Name: name, City: city})
-		fmt.Println("Employee is", employees, err)
+		_, err := c.UpdateEmployee(ctx, &pb.Employee{Id: int32(idInt), Name: name, City: city})
+		if err != nil {
+			log.Fatalf("Failed to update employee due to %v", err)
+		}
+		fmt.Println("Employee details has been updated")
 	case "4":
 		// Delete Employee
 		fmt.Println("Enter the Employee ID")
@@ -100,7 +106,7 @@ func main() {
 		idInt, _ := strconv.Atoi(id)
 		employee, err := c.DeleteEmployee(ctx, &pb.ID{Id: int32(idInt)})
 		if err != nil {
-			log.Fatalf("Could not delete employee with Id %v due to %v", idInt, err)
+			log.Fatalf("Failed to delete employee with Id %v due to %v", idInt, err)
 		}
 		fmt.Printf("Employee with ID %v has been deleted \n", employee.Id)
 
