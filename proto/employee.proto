@@ -1,6 +1,9 @@
+
 syntax = "proto3";
 
 package employee;
+
+import "google/api/annotations.proto";
 
 option go_package = "grpc-employee-book/proto;employee";
 
@@ -16,8 +19,31 @@ message ID {
 }
 
 service EmployeeService {
-    rpc CreateEmployee(Employee) returns (ID);
-    rpc ReadEmployee(ID) returns (Employee);
-    rpc UpdateEmployee(Employee) returns (ID);
-    rpc DeleteEmployee(ID) returns (ID);
+    rpc CreateEmployee(Employee) returns (ID) {
+      option (google.api.http) = {
+          post: "/v1/employee/create"
+          body: "*"
+      };
+    }
+    rpc ReadEmployee(ID) returns (Employee) {
+      option (google.api.http) = {
+        get: "/v1/employee/{id}"
+      };
+    }
+    rpc UpdateEmployee(Employee) returns (ID) {
+      option (google.api.http) = {
+        put: "/v1/employee/{id}"
+        body: "*"
+
+        additional_bindings {
+          patch: "/v1/employee/{id}"
+          body: "*"
+        }
+      };
+    }
+    rpc DeleteEmployee(ID) returns (ID) {
+      option (google.api.http) = {
+        delete: "/v1/employee/{id}"
+      };
+    }
 }
