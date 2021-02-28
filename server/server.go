@@ -1,11 +1,8 @@
-package main
+package v1
 
 import (
 	"fmt"
 	"log"
-	"net"
-	"os"
-	"os/signal"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -13,61 +10,16 @@ import (
 	"github.com/jackc/pgx/v4"
 	pb "github.com/vipin030/grpc-employee-book/proto"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 )
 
-type server struct{}
+type server struct{ Conn *pgx.Conn }
 
 const (
 	table = "employees"
 )
 
-// Conn object
-var Conn *pgx.Conn
-
-func main() {
-	var (
-		username = "interface"
-		password = "interface"
-		host     = "localhost"
-		schema   = "employee"
-	)
-	dsn := fmt.Sprintf("user=%s password=%s host=%s dbname=%s sslmode=disable", username, password, host, schema)
-	lis, err := net.Listen("tcp", "127.0.0.1:50051")
-
-	if err != nil {
-		log.Fatalf("can't listen on port %v", err)
-	}
-	s := grpc.NewServer()
-	pb.RegisterEmployeeServiceServer(s, &server{})
-	conn, err := pgx.Connect(context.Background(), dsn)
-	Conn = conn
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
-	}
-	defer conn.Close(context.Background())
-
-	go func() {
-		if err := s.Serve(lis); err != nil {
-			log.Fatalf("Failed to serve: %v", err)
-		}
-	}()
-
-	fmt.Println("Server has been started on ", lis.Addr().String())
-	c := make(chan os.Signal)
-
-	// os.Interrupt = CTRL+C
-	signal.Notify(c, os.Interrupt)
-
-	// Block main routine until a signal is received
-	<-c
-
-	// After receiving CTRL+C Properly stop the server
-	fmt.Println("\nStopping the server...")
-	s.Stop()
-	lis.Close()
+func NewEmployeeServiceServer(conn *pgx.Conn) *server {
+	return &server{Conn: conn}
 }
 
 func (s *server) CreateEmployee(ctx context.Context, em *pb.Employee) (*pb.ID, error) {
@@ -75,7 +27,7 @@ func (s *server) CreateEmployee(ctx context.Context, em *pb.Employee) (*pb.ID, e
 		return nil, status.Error(codes.InvalidArgument, "Name is empty, please try again")
 	}
 	insertQueryMeta := fmt.Sprintf(`insert into %v (name, city, salary) values ($1, $2, $3)`, table)
-	_, err := Conn.Exec(context.Background(), insertQueryMeta, em.Name, em.City, em.Salary)
+	_, err := s.Conn.Exec(context.Background(), insertQueryMeta, em.Name, em.City, em.Salary)
 
 	return &pb.ID{Id: em.Id}, err
 }
@@ -85,7 +37,7 @@ func (s *server) DeleteEmployee(ctx context.Context, em *pb.ID) (*pb.ID, error) 
 		return nil, status.Error(codes.InvalidArgument, "ID is empty, please try again")
 	}
 	deleteQueryMeta := `delete from employees where id = $1`
-	_, err := Conn.Exec(ctx, deleteQueryMeta, em.Id)
+	_, err := s.Conn.Exec(ctx, deleteQueryMeta, em.Id)
 
 	return &pb.ID{Id: em.Id}, err
 }
@@ -96,7 +48,7 @@ func (s *server) ReadEmployee(ctx context.Context, em *pb.ID) (*pb.Employee, err
 	}
 	readQueryMeta := fmt.Sprintf(`select id,name,city,salary from %v where id = $1`, table)
 	var a = &pb.Employee{}
-	err := Conn.QueryRow(context.Background(), readQueryMeta, em.Id).Scan(&a.Id, &a.Name, &a.City, &a.Salary)
+	err := s.Conn.QueryRow(context.Background(), readQueryMeta, em.Id).Scan(&a.Id, &a.Name, &a.City, &a.Salary)
 	return a, err
 }
 
@@ -107,11 +59,11 @@ func (s *server) UpdateEmployee(ctx context.Context, em *pb.Employee) (*pb.ID, e
 	readQueryMeta := fmt.Sprintf(`select id from %v where id = $1`, table)
 	updateQueryMeta := fmt.Sprintf(`update %v set name = $1, city = $2 where id = $3`, table)
 	var id int32
-	err := Conn.QueryRow(context.Background(), readQueryMeta, em.Id).Scan(&id)
+	err := s.Conn.QueryRow(context.Background(), readQueryMeta, em.Id).Scan(&id)
 	if err != nil {
 		log.Fatalf("Cannot find the Employee due to %v", err)
 		return nil, status.Error(codes.InvalidArgument, "Employee does not found")
 	}
-	_, err = Conn.Exec(context.Background(), updateQueryMeta, em.Name, em.City, em.Id)
+	_, err = s.Conn.Exec(context.Background(), updateQueryMeta, em.Name, em.City, em.Id)
 	return &pb.ID{Id: em.Id}, err
 }

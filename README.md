@@ -1,4 +1,4 @@
-# gRPC CRUD service in Go
+# gRPC REST CRUD service in Go
 
 Simple gRPC go service help to add employee info into PostgreSQL database :boom:
 
@@ -18,9 +18,13 @@ go mod download
 
 First terminal:
 ```
-go run server/server.go
+go run cmd/server/main.go
 ```
-Second terminal
+Second terminal(Run the app as REST client)
+```
+go run cmd/rest-client/main.go
+```
+Third Terminal (Run the app as gRPC client)
 ```
 go run client/client.go
 ```
