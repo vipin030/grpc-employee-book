@@ -26,5 +26,5 @@ go run cmd/rest-client/main.go
 ```
 Third Terminal (Run the app as gRPC client)
 ```
-go run client/client.go
+go run cmd/grpc-client/main.go
 ```

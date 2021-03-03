@@ -10,7 +10,7 @@ import (
 
 	"github.com/vipin030/grpc-employee-book/pkg/protocol/grpc"
 	"github.com/vipin030/grpc-employee-book/pkg/protocol/rest"
-	v1 "github.com/vipin030/grpc-employee-book/server"
+	"github.com/vipin030/grpc-employee-book/pkg/service/v1"
 )
 
 // Config is configuration for Server
